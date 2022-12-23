@@ -1,0 +1,34 @@
+AXIS-VERSION="2006";
+CREATION-DATE="20221208";
+CHARSET="ANSI";
+SUBJECT-AREA="Cifras oficiales de población resultantes de la revisión del Padrón municipal ";
+SUBJECT-CODE="8";
+MATRIX="CCAA";
+TITLE="Población por comunidades y ciudades autónomas y sexo.";
+CONTENTS="Población";
+CODEPAGE="iso-8859-15";
+DESCRIPTION="";
+COPYRIGHT=YES;
+NOTE="Las cifras de 1996 están referidas a 1 de mayo y  las demás a 1 de enero."
+"No existen cifras a 1 de enero de 1997 porque no se realizó revisión del padr"
+"ón para ese año";
+DECIMALS=0;
+SHOWDECIMALS=0;
+STUB="Comunidades y Ciudades Autónomas","Periodo";
+HEADING="Sexo";
+VALUES("Comunidades y Ciudades Autónomas")="Total","01 Andalucía","02 Aragón","03 Asturias, Principado de",
+"04 Balears, Illes","05 Canarias","06 Cantabria","07 Castilla y León",
+"08 Castilla - La Mancha","09 Cataluña","10 Comunitat Valenciana","11 Extremadura",
+"12 Galicia","13 Madrid, Comunidad de","14 Murcia, Región de",
+"15 Navarra, Comunidad Foral de","16 País Vasco","17 Rioja, La","18 Ceuta",
+"19 Melilla";
+VALUES("Periodo")="2020","2019","2018","2017","2016";
+VALUES("Sexo")="Total";
+CODES("Comunidades y Ciudades Autónomas")="CA00","CA01","CA02","CA03","CA04","CA05","CA06","CA07","CA08","CA09","CA10","CA11","CA12",
+"CA13","CA14","CA15","CA16","CA17","CA18","CA19";
+MAP("Comunidades y Ciudades Autónomas")="spain_regions_img_ind";
+SOURCE="Instituto Nacional de Estadística";
+UNITS="Personas";
+DATA=4.7450795E7 4.7026208E7 4.672298E7 4.6572132E7 4.6557008E7 8464411.0 8414240.0 8384408.0 8379820.0 8388107.0 1329391.0 1319291.0 1308728.0 1308750.0 1308563.0 1018784.0 1022800.0 1028244.0 1034960.0 1042608.0 1171543.0 1149460.0 1128908.0 1115999.0 1107220.0 2175952.0 2153389.0 2127685.0 2108121.0 2101924.0 582905.0 581078.0 580229.0 580295.0 582206.0 2394918.0 2399548.0 2409164.0 2425801.0 2447519.0 2045221.0 2032863.0 2026807.0 2031479.0 2041631.0 7780479.0 7675217.0 7600065.0 7555830.0 7522596.0
+ 5057353.0 5003769.0 4963703.0 4941509.0 4959968.0 1063987.0 1067710.0 1072863.0 1079920.0 1087778.0 2701819.0 2699499.0 2701743.0 2708339.0 2718525.0 6779888.0 6663394.0 6578079.0 6507184.0 6466996.0 1511251.0 1493898.0 1478509.0 1470273.0 1464847.0 661197.0 654214.0 647554.0 643234.0 640647.0 2220504.0 2207776.0 2199088.0 2194158.0 2189534.0 319914.0 316798.0 315675.0 315381.0 315794.0 84202.0 84777.0 85144.0 84959.0 84519.0 87076.0 86487.0 86384.0 86120.0 86026.0
+;

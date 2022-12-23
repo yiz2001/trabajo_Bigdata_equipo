@@ -1,0 +1,36 @@
+AXIS-VERSION="2006";
+CREATION-DATE="20221202";
+CHARSET="ANSI";
+SUBJECT-AREA="Resultados detallados";
+SUBJECT-CODE="null";
+MATRIX="NAC_PCO";
+TITLE="Agregados por ramas de actividad";
+CONTENTS="Agregados";
+CODEPAGE="iso-8859-15";
+DESCRIPTION="";
+COPYRIGHT=YES;
+DECIMALS=0;
+SHOWDECIMALS=0;
+STUB="Periodo";
+HEADING="Agregados macroeconómicos","Ramas de actividad";
+VALUES("Periodo")="2021","2020","2019","2018";
+VALUES("Agregados macroeconómicos")="Producción";
+VALUES("Ramas de actividad")="Total CNAE","A Agricultura, ganadería, silvicultura y pesca",
+"B Industrias extractivas",
+"D Suministro de energía eléctrica, gas, vapor y aire acondicionado",
+"E Suministro de agua, actividades de saneamiento, gestión de residuos y descontaminación",
+"C Industria manufacturera","F Construcción",
+"G Comercio al por mayor y al por menor; reparación de vehículos de motor y motocicletas",
+"H Transporte y almacenamiento","I Hostelería","J Información y comunicaciones",
+"K Actividades financieras y de seguros","L Actividades inmobiliarias",
+"M Actividades profesionales, científicas y técnicas",
+"N Actividades administrativas y servicios auxiliares",
+"O Administración Pública y defensa; Seguridad Social obligatoria","P Educación",
+"Q Actividades sanitarias y de servicios sociales",
+"R Actividades artísticas, recreativas y de entretenimiento","S Otros servicios",
+"T Actividades de los hogares como empleadores de personal doméstico; actividades de los hogares como productores de bienes y servicios para uso propio",
+"U Actividades de organizaciones y organismos extraterritoriales";
+SOURCE="Instituto Nacional de Estadística";
+UNITS="Millones ¤";
+DATA=2134507.0 60816.0 5653.0 65864.0 29868.0 488611.0 157166.0 271196.0 117580.0 87816.0 91443.0 81850.0 149936.0 110282.0 62978.0 98309.0 66774.0 118828.0 32429.0 27581.0 9527.0 0.0 2015838.0 60097.0 5114.0 56093.0 31587.0 476509.0 152705.0 237684.0 104361.0 67331.0 87879.0 79165.0 151097.0 100219.0 62481.0 91966.0 66942.0 118691.0 29420.0 27503.0 8994.0 0.0 2241847.0 58237.0 5855.0 64970.0 31624.0 535322.0
+ 167266.0 250124.0 127575.0 131209.0 92337.0 76703.0 152654.0 106576.0 83275.0 91823.0 68151.0 114569.0 41354.0 32404.0 9819.0 0.0 2156398.0 60795.0 5292.0 65166.0 30090.0 529847.0 150738.0 240588.0 120649.0 124392.0 87390.0 76726.0 145504.0 97037.0 79093.0 88839.0 67372.0 107297.0 39816.0 29629.0 10138.0 0.0;

@@ -1,0 +1,82 @@
+project:                
+  type: website          
+  output-dir: docs        #- NO TOCAR: carpeta donde se redirige el output
+  
+website:
+  title: "Los 3 patitos"
+  favicon: duck.jpg
+  # site-url: https://....               #- hay que rellenarlos
+  # repo-url: https://....
+  # repo-actions: [edit, issue]
+  search:   
+    location: navbar
+    type: overlay   
+    copy-button: true
+  navbar:
+    logo: "duck.jpg"           #---
+    background: "#6495ed"    #- color de la navbar
+    foreground: "#444444"    #- color navigation elements, text and links that appear in the navbar.
+    left: 
+      - icon: house-door
+        href: index.html
+    right:
+      - text: "Trabajo"   #---
+        href: my_trabajo_BigData.qmd   
+      - text: "Slides"
+        href: my_slides_BigData.qmd
+      - icon: github
+        href: https://github.com/yiz2001    #---
+      - icon: twitter
+        href: https://twitter.com/shellyzhang24  #---
+      - icon: envelope
+        url: "mailto:<yiz3@alumni.uv.es>"            #---
+  page-footer:
+    border: true
+    background: "#6495ed"
+    left: "© 2022 Yi Zhang/Raphaëlle Batien/Qiu Kaikai"   #----
+    center: "Hecho con [Quarto](https://quarto.org)"
+    right:
+      - icon: github
+        href: https://github.com/yiz2001    #----
+      - icon: twitter
+        href: https://twitter.com/shellyzhang24  #-----
+      - icon: envelope
+        url: "mailto:yiz3@alumni.uv.es"            #-----
+    
+format:
+  html:
+    theme: flatly           #---
+    highlight-style: a11y   #---
+    css: my_styles.css   
+    page-layout: full
+    toc: true
+    code-copy: true
+    code-overflow: wrap    #- {wrap, scroll}
+    code-fold: true
+    code-line-numbers: true
+
+# Enable CC licence appendix
+license: "CC BY"
+
+lang: es   #- {es, en}
+
+
+# Default execute options
+execute:
+  #freeze: true
+  echo: true
+  message: false
+  warning: false
+  eval: true
+
+#- Default knitr options
+knitr:
+  opts_chunk: 
+    collapse: true
+    comment: "#>" 
+    fig.asp:  7/9
+    out.width: "95%"
+    fig.align: "center"
+    fig.show: "hold"
+    R.options:
+      options(scipen = 999)  

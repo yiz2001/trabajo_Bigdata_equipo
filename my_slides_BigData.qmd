@@ -1,0 +1,880 @@
+---
+title: "ANÁLISIS ECONÓMICO SOBRE LA CRISIS DE LA PANDEMIA"
+date: 2022-12-23  #- ISO8601 YYYY-MM-DD format 
+date-format: short
+format: 
+  revealjs:
+    scrollable: true
+    slide-level: 2
+    height: 900
+    width: 1600
+    toc: false
+    center-title-slide: true
+    title-slide-attributes: #- atributos para la slide de titulo
+      data-background-color: "#eed2ee"   #- color de R-ladies
+    preview-links: auto  #- true: abre un iframe en lugar de abrir ventana
+    link-external-newwindow: true
+    transition: fade
+    fontcolor: "#fff0f5"
+    highlight-style: a11y
+    code-line-numbers: true
+    number-sections: false
+    slide-number: c/t  
+    incremental: false   
+    logo: duck.jpg
+    confetti:
+      particleCount: 150
+      angle: 90
+      spread: 360
+      startVelocity: 25
+      gravity: 0.65
+      drift: 0
+      ticks: 400
+      colors: ["#0366fc", "#f54281", "#1fd14f"]
+      scalar: 0.7
+revealjs-plugins:
+  - confetti
+footer: |
+  Slides hechas con [Quarto](https://quarto.org/) 
+---
+
+
+
+## Introducción{background-color="#fff0f5"}
+
+Los datos se pueden cargar en la memoria de de R/RStudio de esta forma:
+
+```{r}
+#| echo : false
+```
+::: {layout-ncol=3}
+
+![INE](https://www.ine.es/infografias/calidadvida/img/logoinecaja.jpg){#fig-3.1}
+
+![eurostat](https://i0.wp.com/europaerestu.eu/wp-content/uploads/2016/03/Eurostat.png?fit=825%2C418&ssl=1){#fig-3.2}
+
+![FMI](https://www.imf.org/-/media/Images/IMF/News/twitter-seal.ashx){#fig-3.3}
+
+:::
+- - - 
+
+## CONTEXTO EUROPEO{background-color="#fff0f5"}
+
+### PIBpc
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(eurostat)
+library(ggplot2)
+library(plotly)
+library(gganimate)
+
+options(scipen = 999) #- para quitar la notación científica
+pacman::p_load(knitr, here, tidyverse, patchwork, ggrepel)
+pacman::p_load(sf, rnaturalearth, rnaturalearthdata, ggspatial, mapview, leafem, leaflet, tmap)
+
+aa <- search_eurostat("GDP per capita", type = "all")
+my_table <- "sdg_08_10"
+df <- get_eurostat(my_table, time_format = 'raw', keepFlags = TRUE)
+zz <- df %>% mutate(iso3c = countrycode::countrycode(geo, origin = "iso2c", destination = "iso3c"), .after = geo)
+
+
+zz1 <- zz %>% mutate(iso3c1 = ifelse(geo == "EL","GRC",iso3c)) %>% mutate(iso3c1 = ifelse(geo == "UK","GBR",iso3c)) %>% filter(unit == "CLV10_EUR_HAB") %>% mutate(nombre = countrycode::countrycode(iso3c1, origin = "iso3c", destination = "un.name.en"), .after = geo) 
+
+zz2 <- zz1 %>% mutate(nombre = ifelse(geo == "EL","Greece",nombre)) %>%                 
+               mutate(nombre = ifelse(geo == "UK","UK",nombre)) %>%
+               filter(geo != "EA19") %>% filter(geo != "EU28") %>% filter(geo != "UK") %>%
+               mutate(nombre = ifelse(geo == "EU27_2020","EU27_2020",nombre)) %>%
+               select(3:4,7:8)  %>% 
+               dplyr::filter(time >= 2019) %>% 
+               dplyr::rename(year=time) %>% 
+               dplyr::rename(PIB_per_capita=values) 
+
+zz3 <- zz2 %>% pivot_wider(names_from = "year",values_from = "PIB_per_capita" )%>% 
+  drop_na() %>% rename(anyo2019 = 3) %>% rename(anyo2020 = 4) %>% rename(anyo2021 = 5)%>%
+  mutate(variacion_1920_por= (anyo2020-anyo2019)*100/anyo2019) %>% 
+  mutate(variacion_quan=cut_to_classes(variacion_1920_por,n=4,decimals = 2,style = "quantile"))%>%
+  mutate(variacion.f=as.factor(ntile(variacion_1920_por,4)))%>%   
+  mutate(my_comentario = case_when (
+    variacion.f =="4" ~ "menos mal",
+    variacion.f =="3" ~ "malo",
+    variacion.f =="2" ~ "muy malo",
+    variacion.f =="1" ~ "horroroso",
+    TRUE    ~ "no lo sé"))
+zz3 <- zz3 %>% mutate(porcentaje = round(variacion_1920_por,digits = 2) )
+geometrias <- get_eurostat_geospatial(resolution = "10",nuts_level = "0")  
+
+mapdata <- full_join(geometrias,zz3)
+
+mapdata$my_comentario <- factor(mapdata$my_comentario, levels = c("menos mal", "malo", "muy malo","horroroso"))
+europe_points <- st_centroid(mapdata, of_largest_polygon = TRUE)
+europe_points <- cbind(mapdata, st_coordinates(st_centroid(mapdata$geometry, of_largest_polygon = TRUE)))
+
+
+p<- ggplot(mapdata)+geom_sf(aes(fill=my_comentario,geometry= geometry),size=.2)+
+  geom_text(data = europe_points, 
+            aes(x = X, y = Y,label = porcentaje), 
+            color = "black", fontface = "bold", check_overlap = TRUE, size = 1.8)+
+  labs(title = "Gráfico 1:Mi comentario sobre el la economía europea",
+       subtitle = "(basado en la variación de PIB per capital entre 2019 y 2020)",
+       caption = "Caída media de EU27:5.74%")+ 
+       theme_light()+
+       theme(title=element_text(family="myFont",size=12,color="red",
+                           face="italic",hjust=0.2,lineheight=0.2),
+             plot.subtitle=element_text(family="myFont",size=8,color="red",
+                              face="italic",hjust=0.6,lineheight=0.2),
+             axis.title.x=element_text(size=10,face="bold",color="blue",hjust=0.5),
+             axis.title.y=element_text(size=14,color="blue",hjust=0.5),
+             legend.title=element_text(size=14,color="black",hjust=0.5)) +
+       coord_sf(xlim=c(-30,45),ylim = c(25,72))
+p
+```
+
+- - - 
+
+## Inflación{background-color="#fff0f5"}
+
+```{r}
+#| echo: false
+library(gt)
+bb <- search_eurostat("inflation", type = "all")
+my_table1 <- "tec00118"
+dfinflation <- get_eurostat(my_table1, time_format = 'raw', keepFlags = TRUE)
+zzinflation <- dfinflation %>% mutate(iso3c = countrycode::countrycode(geo, origin = "iso2c", destination = "iso3c"), .after = geo)
+
+zzinflation1 <- zzinflation %>% mutate(iso3c1 = ifelse(geo == "EL","GRC",iso3c)) %>% mutate(iso3c1 = ifelse(geo == "UK","GBR",iso3c)) %>%  mutate(nombre = countrycode::countrycode(iso3c1, origin = "iso3c", destination = "un.name.en"), .after = geo) 
+
+zzinflation2 <- zzinflation1 %>% 
+  mutate(nombre = ifelse(geo == "EL","Greece",nombre)) %>%                 
+  mutate(nombre = ifelse(geo == "UK","UK",nombre)) %>% 
+  filter(geo != "EA19") %>% filter(geo != "EU28") %>% filter(geo != "EU") %>%
+  filter(geo != "EA") %>% filter(geo != "EA18") %>%
+  mutate(nombre = ifelse(geo == "EU27_2020","EU27_2020",nombre)) %>%
+  select(3:4,7:8) %>% drop_na() %>% filter(time >= 2018) %>% 
+  rename(year=time) %>% 
+  rename(tasa_de_inflacion=values) %>%
+  filter(geo != "UK")
+
+DT::datatable(zzinflation2,
+              caption = "Tabla 1:La tasa de inflación por cada país",
+              options = list(
+                columnDefs = list(
+                  list(className = 'dt-center', 
+                       targets = 0:4)),
+                pageLength=35))
+```
+
+- - - 
+
+## Tasa de desempleo{background-color="#fff0f5"}
+
+```{r}
+#| echo: false
+library(dplyr)
+cc <- search_eurostat("Unemployment", type = "all")
+ccc <- search_eurostat("unemployment", type = "all")
+my_table2 <- "ei_lmhr_m"
+dfparo <- get_eurostat(my_table2, time_format = 'raw', keepFlags = TRUE)
+
+dfparo1 <- dfparo %>%  mutate(iso3c = countrycode::countrycode(geo, origin = "iso2c", destination = "iso3c"), .after = geo) %>%
+  mutate(nombre = countrycode::countrycode(iso3c, origin = "iso3c", destination = "un.name.en"), .after = geo) %>%
+  mutate(nombre = ifelse(geo == "EL","Greece",nombre)) %>%
+  mutate(nombre = ifelse(geo == "EU27_2020","EU27_2020",nombre)) %>%
+  mutate(nombre = ifelse(geo == "UK","UK",nombre)) %>% 
+  filter(geo !="EA19") %>% filter(geo !="US") %>% 
+  tidyr::separate(indic,sep ="-",c("nada1","nada2","sexo","edad"))%>%
+  filter(s_adj=="NSA") %>% filter(sexo=="T") %>% filter(edad=="TOT") %>% select(7:9,11:12)
+
+dfparo2 <- dfparo1 %>% mutate(fecha = lubridate::ym(time), .after = time)%>% 
+           mutate(anyo = lubridate::year(fecha), .after = fecha) %>% 
+           mutate(mes = lubridate::month(fecha), .after = anyo) %>%
+           filter(anyo >= 2019) %>% rename(country=nombre) %>%
+           mutate(country.f = forcats::as_factor(country)) %>%
+           mutate(country.ff = forcats::fct_reorder(country, values,.desc = TRUE))%>%                   group_by(time) %>% rename(pais= country.ff) %>% rename(tasa_de_paro= values)%>%
+           filter(fecha != "2022-11-01") %>% filter(geo!= "UK") %>% filter(geo!= "TR") 
+pparo <- ggplot(dfparo2,aes(x= country,y= tasa_de_paro,color = country,fill=country)) + 
+  geom_bar(stat='identity') + 
+  coord_flip() + 
+  geom_text(aes(label=tasa_de_paro), 
+                position = position_dodge2(width = 0.9, preserve = 'single'))
+pparo + 
+  transition_manual(fecha) +
+  labs(title = "Gráfico 2:Tasa de paro en {current_frame}") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+
+- - - - 
+
+## Los PIGS{background-color="#fff0f5"}
+
+
+```{r}
+#| echo: false
+library(ggthemes)
+dfparopigs <- dfparo2 %>% filter(country %in% c("Spain","Italy","Portugal","Ireland","Greece"))
+
+ggplot(data= dfparopigs, aes(x=fecha, y=tasa_de_paro, group = country)) +
+  geom_line(aes(color = country), linetype= "solid",size = 2) +
+  geom_point(size=1) +
+  transition_reveal(fecha) +
+  labs(title = "Gráfico 3: La variación de tasa de paro de los países de PIGS",
+       subtitle = "(España,Irlanda,Portugal,Italia y Grecia)",
+       caption = "Datos provenientes del Eurostat",
+       x = "tiempo",
+       y = " tasa de paro ") +
+  theme_solarized()+
+  theme(title=element_text(family="myFont",size=14,color="black",
+                           face="italic",hjust=0.2,lineheight=0.8),
+        plot.subtitle=element_text(family="myFont",size=8,color="black",
+                                   face="italic",hjust=0.6,lineheight=0.2))+
+       scale_color_brewer(palette = "Dark2")
+```
+
+- - - - 
+
+## A NIVEL INTERNACIONAL{background-color="#fff0f5"}
+
+### Importaciones y exportaciones
+
+::: {.panel-tabset}
+
+### Exportación
+
+```{r}
+#| echo: false
+library(readxl)
+df_export <- read_excel("./datos/WEO_Data-4_export.xls", 
+                        col_types = c("text", "numeric", "numeric"))
+df_export <- df_export %>% rename(Tasa_de_exportacion = Value)
+
+df_import <- read_excel("./datos/WEO_Data-5_import.xls", 
+                        col_types = c("text", "numeric", "numeric"))
+df_import <- df_import %>% rename(Tasa_de_importacion = Value)
+
+library(ggplot2)
+library(tidyverse)
+library(gganimate)
+
+#exportacion
+
+p1 <- ggplot(df_export, aes(x=Country, y= Tasa_de_exportacion, fill= Country)) +
+  labs(title = "Gráfico 4: Tasas de exportación entre 8 países" ,
+       subtitle = " Periodo 2019-2021",
+      caption  = "Fuente: FMI") +
+  facet_grid(cols = vars (Year))+
+  geom_bar(stat = "identity")+
+  theme_light()+
+  theme(axis.text.x = element_text(angle = 90,
+                                   hjust = 1,
+                                   vjust = 0.5))
+
+
+p1
+```
+### Importación
+
+```{r}
+#| echo: false
+p2 <- ggplot(df_import, aes(x= Country,y= Tasa_de_importacion, fill= Country)) +
+  labs(title = "Gráfica 5: Tasas de importación entre 8 paíse", 
+       subtitle = " Periodo 2019-2021",
+      caption  = "Fuente: FMI")+
+  facet_grid(cols = vars (Year))+
+  geom_bar(stat = "identity")+ 
+  theme_light()+
+  theme (axis.text.x = element_text(angle = 90,
+                                   hjust = 1,
+                                   vjust = 0.5))
+
+p2
+```
+
+:::
+
+- - - 
+
+## Evolución del PIB de los 10 países escogidos durante 2019-2020{background-color="#fff0f5"}
+```{r}
+#| echo: false
+library(readxl)
+df_PIB <- read_excel("./datos/WEO_data-7.xls") 
+
+library(gapminder)
+df_PIB <- df_PIB %>% 
+  tidyr::pivot_longer(cols = 2:4, names_to = "Year", values_to = "Value")
+
+
+
+
+
+library(tidyverse)
+df_1 <- df_PIB 
+
+df_2019<- df_1 %>% filter(Year == 2019) %>% slice_max(Value, n = 10)
+
+df_2020 <- df_1 %>% filter(Year == 2020) %>% slice_max(Value, n = 10)
+
+df_2021 <- df_1 %>% filter(Year == 2021) %>% slice_max(Value, n = 10)
+
+
+df_2 <- full_join(df_2019, df_2020)
+df_2 <- full_join(df_2 , df_2021)
+
+
+
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+
+p4 <- ggplot(df_2, aes(Year, Value, color = Country)) + 
+  geom_point(aes(Year, Value, color = Country)) +
+  labs(title = "Gráfico 6: Evolución del PIB de los 10 países escogidos ",
+       subtitle = "Periodo:2019-2021",
+       caption = "Fuente: FMI",
+       x = "Year",
+       y = "PIB per capita",
+       color = "Country")+
+  facet_grid(cols = vars (Country))+ 
+  theme_light() +
+  theme (axis.text.x = element_text(angle = 90,
+                                    hjust = 1,
+                                    vjust = 0.5))
+
+ggplotly(p4)
+
+```
+
+- - - - - 
+
+## Consecuencias sobre el empleo de las economías avanzadas{background-color="#fff0f5"}
+
+::: {.panel-tabset}
+
+### 1
+```{r}
+#| echo: false
+
+library(readxl)
+Tasa_de_desempleo <- read_excel("./datos/Tasa_de_desempleo.xls", 
+                                col_types = c("text", "text", "text", 
+                                              "numeric", "numeric", "numeric"))
+library(gapminder)
+library(tidyverse)
+Tasa_de_desempleo <-Tasa_de_desempleo %>% 
+  tidyr::pivot_longer(cols = 4:6, names_to = "Year", values_to = "Value")
+Tasa_de_desempleo <- Tasa_de_desempleo %>% rename(Percent_of_total_labor_force= Value)
+
+
+
+library(ggplot2)
+library(ggrepel)
+library(tidyverse)
+Tasa_de_desempleo_1 <-Tasa_de_desempleo %>% slice(1: 27)
+p4 <-ggplot(Tasa_de_desempleo_1, aes(Year, Percent_of_total_labor_force, label = Percent_of_total_labor_force, color= Year)) + geom_point() +
+  labs(title = "Gráfico 7: Porcentaje de la fuerza laboral total durante el periodo 2019/2021 " ,
+       caption = "Datos provenientes de FMI",
+       y = "Percent_of_total_labor_force",
+       x = "Year") + geom_smooth() +
+  facet_wrap(vars(Country))+
+  geom_label_repel()+ 
+  theme_light()+
+  theme (axis.text.x = element_text(angle = 90,
+                                    hjust = 1,
+                                    vjust = 0.5))
+
+p4
+
+```
+
+
+### 2
+```{r}
+#| echo: false
+Tasa_de_desempleo_2 <- Tasa_de_desempleo %>% slice(28:60)
+
+p5 <- ggplot(Tasa_de_desempleo_2, aes(Year, Percent_of_total_labor_force, label = Percent_of_total_labor_force, color= Year)) + geom_point() +
+  labs(title = "Gráfico 8: Porcentaje de fuerza laboral total durante el periodo 2019/2021 " ,
+       caption = "Datos provenientes de FMI",
+       y = "Percent_of_total_labor_force",
+       x = "Year") + geom_smooth() +
+  facet_wrap(vars(Country))+
+  geom_label_repel()+ 
+  theme_light()+
+  theme (axis.text.x = element_text(angle = 90,
+                                    hjust = 1,
+                                    vjust = 0.5))
+p5
+
+```
+
+
+### 3
+```{r}
+#| echo: false
+Tasa_de_desempleo_3 <- Tasa_de_desempleo %>% slice(61:90)
+
+p6 <- ggplot(Tasa_de_desempleo_3, aes(Year, Percent_of_total_labor_force, label = Percent_of_total_labor_force, color= Year)) + geom_point() +
+  labs(title = "Gráfico 9: Porcentaje de fuerza laboral total durante el periodo 2019/2021 " ,
+       caption = "Datos provenientes de FMI",
+       y = "Percent_of_total_labor_force",
+       x = "Year") + geom_smooth() +
+  facet_wrap(vars(Country))+
+  geom_label_repel()+ 
+  theme_light()+
+  theme (axis.text.x = element_text(angle = 90,
+                                    hjust = 1,
+                                    vjust = 0.5))
+p6
+
+```
+
+
+### 4
+```{r}
+#| echo: false
+Tasa_de_desempleo_4 <- Tasa_de_desempleo %>% slice(91:120)
+
+p7 <- ggplot(Tasa_de_desempleo_4, aes(Year, Percent_of_total_labor_force, label = Percent_of_total_labor_force, color= Year)) + geom_point() +
+  labs(title = "Gráfico 10: Porcentaje de fuerza laboral durante el periodo 2019/2021 " ,
+       caption = "Datos provenientes de FMI",
+       y = "Percent_of_total_labor_force",
+       x = "Year") + geom_smooth() +
+  facet_wrap(vars(Country))+
+  geom_label_repel()+ 
+  theme_light()+
+  theme (axis.text.x = element_text(angle = 90,
+                                    hjust = 1,
+                                    vjust = 0.5))
+p7
+
+```
+
+:::
+
+- - - - 
+
+## CONSECUENCIAS EN LA ECONOMÍA ESPAÑOLA{background-color="#fff0f5"}
+
+### Evolución de la tasa de paro
+
+![Gráfico 11: Mapa de España: Evolución de la tasa de paro](./datos/tasa_paro.gif)
+
+- - - - - 
+
+## Ranking de las CCAA según el PIBpc{background-color="#fff0f5"}
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(pxR)
+library(ggbump)
+library(dplyr)
+library(plyr)
+
+df_px_1 <- pxR::read.px("./datos/pib_ccaa_valor.px") %>% as.data.frame
+df_px_2 <- pxR::read.px("./datos/demografia.px") %>% as.data.frame
+df_px_3<- pxR::read.px("./datos/pib_ccaa_tasas.px") %>% as.data.frame
+
+df_px_1 <- df_px_1 %>% mutate(periodo = stringr::str_extract(periodo, "...."))
+
+
+df_1 <- df_px_1 %>%
+  select("periodo","ccaa"="Comunidades.y.ciudades.autónomas","pib"="value") %>%
+  filter(ccaa !="TOTAL NACIONAL")
+
+df_2 <- df_px_2 %>% 
+  janitor::clean_names() %>% 
+  select(-sexo) %>% 
+  filter(comunidades_y_ciudades_autonomas != "Total") %>% 
+  mutate(comunidades_y_ciudades_autonomas = as.character(comunidades_y_ciudades_autonomas)) %>% 
+  tidyr::separate(comunidades_y_ciudades_autonomas, sep = " ", 
+                  into = c("ine_ccaa", "ine_ccaa.n"), extra = "merge") %>% 
+  select("periodo","ine_ccaa.n","pob" = "value")
+
+df_ok <- bind_cols(df_1,df_2)
+df_ok <- df_ok %>% 
+  select("periodo" = "periodo...1", "ccaa", "pib", "pob") %>% 
+  mutate(pib_pc = (pib*1000)/pob) %>% 
+  group_by(periodo) %>%
+  arrange(periodo, desc(pib_pc), ccaa) %>%
+  dplyr::mutate(ranking = dplyr::row_number(),
+         year = as.numeric(periodo))
+  
+p <- ggplot(data = df_ok, aes(x = periodo, y = ranking, group = ccaa, color = ccaa)) +
+  geom_bump(size = 1.5) +
+  geom_point(aes(color = ccaa, alpha = 1), size = 4) +
+  geom_point(color = "#FFFFFF", size = 1) +
+  geom_text(data = df_ok %>% filter(year == "2016"),
+            aes(label = ccaa, x = .963) , hjust = 1, fontface = "bold", color = "black", size = 2.3) +
+  geom_text(data = df_ok %>% filter(year == "2020"),
+            aes(label = ccaa, x = 5.03) , hjust = 0, fontface = "bold", color = "black", size = 2.5) +
+  scale_y_reverse(breaks = 1:nrow(df_ok)) +
+  theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm")) +
+  theme_minimal() +
+  scale_color_manual(values = c("#FFCCFF","#66CCFF","#FFFFCC","#99CCFF","#99FFCC","#FFFF33","#FF9933","#9999CC","#9999FF","#CCCCCC","#CC9999","#CC3333","#CCFFCC","#9966FF","#66CCFF","#CCFF66","#FFCC66","#FF9966","#99FF66")) +
+  labs(title = "Gráfico 12:Posición de las CCAA según el PIBpc",
+       subtitle = "siendo 2020 el año del comienzo de la pandemia") +
+  theme(plot.title       = element_text(color="#22211d", size=20, face = "bold")) +
+  theme(axis.title.x     = element_text(size=14, color="black", face = "bold")) +
+  theme(axis.title.y     = element_text(size=14, color="black", face = "bold", vjust=1.25)) +
+  theme(axis.text.x      = element_text(size=10, vjust=0.5, hjust=0.5, color = "#22211d")) +
+  theme(axis.text.y      = element_text(size=10, color = "#22211d")) +
+  theme(strip.text       = element_text(face = "bold")) +
+  theme(legend.position = "none")
+
+p
+```
+
+- - - - 
+
+## Comparación en tasas de crecimiento{background-color="#fff0f5"}
+```{r}
+#| echo: false
+
+library(gt)
+
+df_1 <- df_px_1 %>% 
+  select("periodo","ccaa"="Comunidades.y.ciudades.autónomas","pib"="value") %>% 
+  filter(ccaa != "TOTAL NACIONAL") %>% 
+  filter(periodo %in% c("2018","2019(P)","2020(A)"))
+df_2 <- df_px_3 %>% 
+  select("periodo","ccaa"="Comunidades.y.ciudades.autónomas","pib_en_tasas"="value") %>% 
+  filter(ccaa != "TOTAL NACIONAL") %>% 
+  filter(periodo %in% c("2018","2019(P)","2020(A)"))
+
+aa <- full_join(df_1,df_2) %>% 
+  mutate(as.numeric(pib)) %>% 
+  mutate(as.numeric(pib_en_tasas))
+
+ranking_en_tasas <- aa %>% 
+  select(-c("pib")) %>% 
+  pivot_wider(names_from = periodo, values_from = pib_en_tasas) %>% 
+  select("ccaa","2020" = "2020(A)") %>% 
+  arrange(desc(`2020`))
+
+tabla_tasas <- ranking_en_tasas %>% 
+  gt(rowname_col = "ccaa")%>% 
+  tab_header(title = "Tabla 2: Ranking según tasas de variaciones de crecimiento del PIB ",
+             subtitle = md("(**de las CCAA**) de mayor a menor")) %>% 
+  tab_source_note(md("Fuente: datos de [INE](https://www.ine.es/jaxi/Datos.htm?path=/t35/p010/rev19/l0/&file=01001.px)")) %>% 
+  cols_align(align = "center") %>% 
+  opt_row_striping() %>% 
+  opt_table_font(font = google_font("Fira Mono")) %>% 
+  tab_options(column_labels.border.bottom.color = "black",
+              table_body.border.bottom.color = "black",
+              table_body.hlines.color = "black") %>% 
+  opt_align_table_header(align = "left") %>% 
+  data_color(columns = c(`2020`),
+             colors = scales::col_numeric(palette = c("lightblue"), domain = NULL,alpha = .5) )
+tabla_tasas %>% gtExtras::gt_theme_guardian()
+```
+
+- - - - - 
+
+## Efectos sobre los sectores económicos{background-color="#fff0f5"}
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(pxR)
+library(gganimate)
+
+df_px <- pxR::read.px("./datos/ramas_act.px") %>% as.data.frame()
+
+# ramas de actividad: grafico de barras horizontales animado con plotly 
+
+df_ramas_original <- df_px %>% 
+  select("periodo" = "Periodo", "ramas_act" = "Ramas.de.actividad", "produccion" = "value") %>% 
+  mutate(ramas_act = as.character(ramas_act)) %>% 
+  mutate(ramas_act = ifelse(ramas_act == "Total CNAE",
+                            paste("Z", ramas_act),
+                            ramas_act)) %>% 
+  tidyr::separate(ramas_act, sep = " ", 
+                  into = c("ramas_act_code", "ramas_act"), extra = "merge") %>%
+  select(-ramas_act_code)
+
+df_sec <- df_ramas_original %>% 
+  pivot_wider(names_from = ramas_act, values_from = produccion) %>% 
+  mutate(sec_primario = `Agricultura, ganadería, silvicultura y pesca`) %>% 
+  mutate(sec_secundario = `Industrias extractivas` + `Industria manufacturera` + `Suministro de energía eléctrica, gas, vapor y aire acondicionado` + `Suministro de agua, actividades de saneamiento, gestión de residuos y descontaminación`) %>% 
+  mutate(sec_construccion = `Construcción`) %>% 
+  mutate(sec_terciario = `Total CNAE`-`sec_primario`-`sec_secundario`-`sec_construccion`) %>% 
+  select("periodo", "total" = "Total CNAE", "sec_primario", "sec_secundario", "sec_construccion", "sec_terciario") %>% 
+  pivot_longer(cols = 2:6, names_to = "sectores", values_to = "produccion") 
+
+# diagrama de sectores 
+
+library(ggplot2)
+library(ggrepel)
+library(tidyverse)
+
+df_2019 <- df_sec %>% 
+  filter(periodo == "2019") %>% 
+  filter(sectores != "total") %>% 
+  mutate(porcentaje = (produccion*100)/sum(produccion),
+         percent = round(porcentaje, 2),
+         csum = rev(cumsum(rev(percent))),
+         posicion = percent/2 + lead(csum, 1))
+
+df_2019 <- df_2019 %>% 
+  mutate(posicion = ifelse(is.na(posicion), percent/2, posicion))
+
+p_2019 <- ggplot(df_2019, aes(x = "" , y = percent, fill = fct_inorder(sectores))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_label_repel(data = df_2019,
+                   aes(y = posicion, label = paste0(percent, "%")),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Sector")) +
+  theme_void() 
+
+df_2020 <- df_sec %>% 
+  filter(periodo == "2020") %>% 
+  filter(sectores != "total") %>% 
+  mutate(porcentaje = (produccion*100)/sum(produccion),
+         percent = round(porcentaje, 2),
+         csum = rev(cumsum(rev(percent))),
+         posicion = percent/2 + lead(csum, 1))
+
+df_2020 <- df_2020 %>% 
+  mutate(posicion = ifelse(is.na(posicion), percent/2, posicion))
+
+p_2020 <- ggplot(df_2020, aes(x = "" , y = percent, fill = fct_inorder(sectores))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_label_repel(data = df_2020,
+                   aes(y = posicion, label = paste0(percent, "%")),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Sector")) +
+  theme_void() 
+
+df_2021 <- df_sec %>% 
+  filter(periodo == "2021") %>% 
+  filter(sectores != "total") %>% 
+  mutate(porcentaje = (produccion*100)/sum(produccion),
+         percent = round(porcentaje, 2),
+         csum = rev(cumsum(rev(percent))),
+         posicion = percent/2 + lead(csum, 1))
+
+df_2021 <- df_2021 %>% 
+  mutate(posicion = ifelse(is.na(posicion), percent/2, posicion))
+
+p_2021 <- ggplot(df_2021, aes(x = "" , y = percent, fill = fct_inorder(sectores))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_label_repel(data = df_2021,
+                   aes(y = posicion, label = paste0(percent, "%")),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Sector")) +
+  theme_void() 
+
+df_2018 <- df_sec %>% 
+  filter(periodo == "2018") %>% 
+  filter(sectores != "total") %>% 
+  mutate(porcentaje = (produccion*100)/sum(produccion),
+         percent = round(porcentaje, 2),
+         csum = rev(cumsum(rev(percent))),
+         posicion = percent/2 + lead(csum, 1))
+
+df_2018 <- df_2018 %>% 
+  mutate(posicion = ifelse(is.na(posicion), percent/2, posicion))
+
+p_2018 <- ggplot(df_2018, aes(x = "" , y = percent, fill = fct_inorder(sectores))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_label_repel(data = df_2021,
+                   aes(y = posicion, label = paste0(percent, "%")),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Sector")) +
+  theme_void() 
+
+library(patchwork)
+
+wrap_plots(p_2018, p_2019, p_2020, p_2021, 
+           ncol = 2, nrow = 2,
+           widths = c(1, 1), heights = c(1, 1)) +
+  plot_annotation(title = "Gráfico 13: Proporción según producción de las actividades económicas en España",
+                  subtitle = "(de los años 2018,2019,2020 y 2021)",
+                  caption = "Elaboración propia con datos de la INE")
+```
+
+- - - - - 
+
+## Producción de cada rama de actividad{background-color="#fff0f5"}
+```{r}
+#| echo: false
+library(tidyverse)
+library(pxR)
+library(gganimate)
+
+df_px <- pxR::read.px("./datos/ramas_act.px") %>% as.data.frame()
+
+# ramas de actividad: grafico de barras horizontales animado con plotly 
+
+df_ramas_original <- df_px %>% 
+  select("periodo" = "Periodo", "ramas_act" = "Ramas.de.actividad", "produccion" = "value")%>% 
+  mutate(ramas_act = as.character(ramas_act)) %>% 
+  mutate(ramas_act = ifelse(ramas_act == "Total CNAE",
+                            paste("Z", ramas_act),
+                            ramas_act)) %>% 
+  tidyr::separate(ramas_act, sep = " ", 
+                  into = c("ramas_act_code", "ramas_act"), extra = "merge") %>%
+  select(-ramas_act_code)
+
+df_ramas_mayor <- df_ramas_original %>% 
+  filter(ramas_act != "Total CNAE") %>% 
+  mutate(ramas_act = forcats::as_factor(ramas_act)) %>% 
+  mutate(ramas_act = forcats::fct_infreq(ramas_act)) %>% 
+  mutate(periodo = as.character(periodo)) %>% 
+  group_by(periodo) %>%
+  arrange(periodo, desc(produccion), ramas_act) %>% 
+  mutate(periodo = as.factor(periodo)) %>% 
+  filter(produccion >= 100000) %>% 
+  mutate(ramas_act = case_when(
+    ramas_act == "Comercio al por mayor y al por menor; reparación de vehículos de motor y motocicletas" ~ "Comercio y reparación",
+    ramas_act == "Actividades sanitarias y de servicios sociales" ~ "Act. sanitarias y de servicios sociales",
+    ramas_act == "Actividades profesionales, científicas y técnicas" ~ "Act. profesionales,cientçificas y técnicas",
+    ramas_act == "Industria manufacturera" ~ "Industria manufacturera",
+    ramas_act == "Construcción" ~ "Construcción",
+    ramas_act == "Actividades inmobiliarias" ~ "Actividades inmobiliarias",
+    ramas_act == "Hostelería" ~ "Hostelería",
+    ramas_act == "Transporte y almacenamiento" ~ "Transporte y almacenamiento"))
+
+
+p <- ggplot(df_ramas_mayor)
+
+p + geom_col(aes(x = reorder(ramas_act, produccion), y = produccion, fill = ramas_act)) + 
+  coord_flip() +                  
+  transition_states(periodo,                    
+                    transition_length = 1,      
+                    state_length = 1) +
+  theme_minimal() +  
+  labs(title = "Gráfico 14: Producción en {closest_state}",
+       subtitle = "diferenciado por ramas de actividad mayores de 100.000 u.m.",
+       caption = "Elaboración propia con datos de la INE") +
+  theme(plot.caption.position = "panel") +
+  xlab('') + 
+  ylab('produccion') +
+  theme(legend.position = "none")
+```
+
+- - - - 
+
+## El turismo en la Comunidad Valenciana{background-color="#fff0f5"}
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(pxR)  
+library(sf)
+library(naniar)
+library(plotly)
+
+df_px <- pxR::read.px("./datos/10823.px") %>% as.data.frame
+
+df <- df_px %>% 
+  janitor::clean_names() %>% 
+  mutate(fecha = lubridate::ym(periodo)) %>% 
+  mutate(anyo = lubridate::year(fecha)) %>% 
+  mutate(mes = lubridate::month(fecha))  %>% 
+  select(-periodo) %>% 
+  mutate(comunidades_autonomas = as.character(comunidades_autonomas),
+         ccaa = ifelse(comunidades_autonomas == "Total",
+                       paste("00", comunidades_autonomas),
+                       comunidades_autonomas)) %>%  
+  tidyr::separate(ccaa, sep = " ", 
+                  into = c("ine_ccaa", "ine_ccaa.n"), extra = "merge") %>% 
+  pivot_wider(names_from = "tipo_de_dato", values_from = "value") %>% 
+  select("fecha", "anyo", "mes", "ine_ccaa", "ine_ccaa.n", "Dato base", "Tasa de variación acumulada")
+
+zz <- naniar::gg_miss_var(df, show_pct = TRUE)
+
+df_original <- df
+
+df_CV <- df_original %>% 
+  filter(ine_ccaa.n =="Comunitat Valenciana")
+
+p1 <- ggplot() +
+  geom_line(data = df_CV, aes(x = fecha,
+                              y = `Dato base`,
+                              color = ine_ccaa.n)) + 
+  theme_minimal() +
+  labs(title = "Gráfico 15:Evolución de turistas siendo la Comunidad Valenciana el destino principal",
+       subtitle = "(de enero 2019 hasta octubre 2022)",
+       x = "",
+       y = "Número de turistas") +
+  theme(legend.position = "none")
+  
+ggplotly(p1)
+
+```
+
+- - - - 
+
+## En tasa de variación acumulada{background-color="#fff0f5"}
+
+```{r}
+#| echo: false
+p2 <- ggplot() +
+  geom_line(data = df_CV, aes(x = fecha,
+                              y = `Tasa de variación acumulada`), color = "Blue") +
+  theme_minimal() +
+  labs(title = "Gráfico 16:Evolución de la tasa de variación acumulada siendo la Comunidad Valenciana el destino principal",
+       x = "",
+       y = "Tasa de variación acumulada") +
+  theme(legend.position = "none")
+
+ggplotly(p2)
+```
+
+- - - 
+
+## LA CRISIS ENERGÉTICA Y EL FUTURO{background-color="#fff0f5"}
+
+### La crisis energética
+
+```{r}
+#| echo: false
+library(vembedr)
+embed_url("https://www.youtube.com/watch?v=sC0SsZnegBQ")
+```
+
+- - - 
+
+## El futuro{background-color="#fff0f5"}
+
+- De la crisis energética:
+```{r}
+#| echo: false
+library(vembedr)
+embed_url("https://www.youtube.com/watch?v=0LG_eEqdcLs")
+```
+
+
+- - - - 
+
+## FIN{background-color="#fff0f5"}
+<br>
+
+Con esto acabo mi trabajo para BigData!!🥳🎉👏👏
+
+<br>
+
+- - - 
+
+## {background-color="#fff0f5"}
+Abajo muestro mi entorno de trabajo y paquetes utilizados
+
+```{r}
+#| echo: false
+sessioninfo::session_info() %>% 
+  details::details(summary = 'current session info') 
+```
+
